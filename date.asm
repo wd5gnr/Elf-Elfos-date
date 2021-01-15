@@ -78,7 +78,7 @@ datelp:    lda     r7                  ; get byte from date
            lbr     disp                ; display new date
 
 dateerr:   sep     scall               ; display error
-           dw      f_inmsg
+           dw      o_inmsg
            db      'Date format error',10,13,0
            lbr     o_wrmboot           ; return to Elf/OS
 
@@ -149,7 +149,7 @@ disp:      mov     rf,buffer           ; point to output buffer
 
            mov     rf,buffer           ; point to output buffer
            sep     scall               ; and display it
-           dw      f_msg
+           dw      o_msg
            lbr     o_wrmboot           ; and return to Elf/OS
 datetime:  db      0,0,0,0,0,0
 buffer:    db      0
