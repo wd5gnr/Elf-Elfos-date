@@ -64,10 +64,48 @@ start:     lda     ra                  ; move past any spaces
            phi     rd
            glo     rd                  ; save year offset
            str     r7
+           inc     r7
+         
+           lda     rf                  ; get next byte
+           lbz     datego              ; jump no time entered
+           smi     ' '                 ; otherwise must be space
+           lbnz    dateerr             ; jump if not
+           sep     scall               ; get hour
+           dw      f_atoi
+           glo     rd
+           str     r7                  ; store it
+           inc     r7
+           smi     24                  ; see if in range
+           lbdf    dateerr             ; jump if error
+         
+           lda     rf                  ; get next byte
+           lbz     datego              ; jump no time entered
+           smi     ':'                 ; otherwise must be colon
+           lbnz    dateerr             ; jump if not
+           sep     scall               ; get minute
+           dw      f_atoi
+           glo     rd
+           str     r7                  ; store it
+           inc     r7
+           smi     60                  ; see if in range
+           lbdf    dateerr             ; jump if error
+         
+           lda     rf                  ; get next byte
+           lbz     datego              ; jump no time entered
+           smi     ':'                 ; otherwise must be colon
+           lbnz    dateerr             ; jump if not
+           sep     scall               ; get second
+           dw      f_atoi
+           glo     rd
+           str     r7                  ; store it
+           inc     r7
+           smi     60                  ; see if in range
+           lbdf    dateerr             ; jump if error
+          
            
-           mov     r7,datetime         ; point back to date
+datego:    mov     r7,datetime         ; point back to date
            mov     rf,0475h            ; kernel storage for date
-           ldi     3                   ; 3 bytes to move
+           ldi     6                   ; 3 bytes to move
            plo     rc
 datelp:    lda     r7                  ; get byte from date
            str     rf                  ; store into kernel var
@@ -75,6 +113,14 @@ datelp:    lda     r7                  ; get byte from date
            dec     rc                  ; decrement count
            glo     rc                  ; see if done
            lbnz    datelp              ; loop back if not
+
+           sep     scall               ; is RTC present
+           dw      hasrtc
+           lbnf    disp                ; jump if not
+
+           mov     rf,0475h            ; point to data 
+           sep     scall               ; call BIOS to set RTC
+           dw      f_settod
            lbr     disp                ; display new date
 
 dateerr:   sep     scall               ; display error
@@ -82,7 +128,14 @@ dateerr:   sep     scall               ; display error
            db      'Date format error',10,13,0
            lbr     o_wrmboot           ; return to Elf/OS
 
-disp:      mov     rf,buffer           ; point to output buffer
+disp:      sep     scall               ; see if extended BIOS
+           dw      hasrtc
+           lbnf    disp2               ; jump if not
+           mov     rf,0475h            ; point to kernel date/time
+           sep     scall               ; call BIOS to get current date/time from RTC
+           dw      0f815h
+         
+disp2:     mov     rf,buffer           ; point to output buffer
            mov     r7,0475h            ; address of date/time
            lda     r7                  ; retrieve month
            plo     rd
@@ -151,6 +204,21 @@ disp:      mov     rf,buffer           ; point to output buffer
            sep     scall               ; and display it
            dw      o_msg
            lbr     o_wrmboot           ; and return to Elf/OS
+
+hasrtc:    mov     rf,0f818h           ; see if extended BIOS is available
+           lda     rf                  ; get byte from set date call
+           smi     0c0h                ; must be LBR
+           lbnz    nortc               ; jump if not
+           lda     rf                  ; retrieve second byte
+           ani     0f0h                ; keep only high nybble
+           smi     0f0h                ; must be in BIOS space
+           lbnz    nortc
+           smbi    0                   ; signal RTC present
+           sep     sret                ; and return
+nortc:     adi     0                   ; clear df
+           sep     sret                ; and return
+
+
 datetime:  db      0,0,0,0,0,0
 buffer:    db      0
 
