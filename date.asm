@@ -6,8 +6,8 @@
 ; *** without express written permission from the author.         ***
 ; *******************************************************************
 
-include    bios.inc
-include    kernel.inc
+include    ../bios.inc
+include    ../kernel.inc
 
            org     8000h
            lbr     0ff00h
@@ -120,7 +120,7 @@ datelp:    lda     r7                  ; get byte from date
 
            mov     rf,0475h            ; point to data 
            sep     scall               ; call BIOS to set RTC
-           dw      f_settod
+           dw      o_settod
            lbr     disp                ; display new date
 
 dateerr:   sep     scall               ; display error
