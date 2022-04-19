@@ -9,21 +9,16 @@
 include    ../bios.inc
 include    ../kernel.inc
 
-           org     8000h
-           lbr     0ff00h
-           db      'date',0
-           dw      9000h
-           dw      endrom+7000h
-           dw      2000h
-           dw      endrom-2000h
-           dw      2000h
-           db      0
- 
-           org     2000h
-           br      start
+.op "PUSH","N","9$1 73 8$1 73"
+.op "POP","N","60 72 A$1 F0 B$1"
+.op "CALL","W","D4 H1 L1"
+.op "RTN","","D5"
+.op "MOV","NR","9$2 B$1 8$2 A$1"
+.op "MOV","NW","f8 H2 B$1 f8 L2 a$1"
 
-include    date.inc
-include    build.inc
+           org     2000h
+begin:     br      start
+           eever
            db      'Written by Michael H. Riley',0
 
 start:     lda     ra                  ; move past any spaces
@@ -126,7 +121,8 @@ datelp:    lda     r7                  ; get byte from date
 dateerr:   sep     scall               ; display error
            dw      o_inmsg
            db      'Date format error',10,13,0
-           lbr     o_wrmboot           ; return to Elf/OS
+           ldi     0bh
+           sep     sret                ; return to Elf/OS
 
 disp:      sep     scall               ; see if extended BIOS
            dw      hasrtc
@@ -203,7 +199,8 @@ disp2:     mov     rf,buffer           ; point to output buffer
            mov     rf,buffer           ; point to output buffer
            sep     scall               ; and display it
            dw      o_msg
-           lbr     o_wrmboot           ; and return to Elf/OS
+           ldi     0
+           sep     sret                ; and return to Elf/OS
 
 hasrtc:    mov     rf,0f818h           ; see if extended BIOS is available
            lda     rf                  ; get byte from set date call
@@ -224,4 +221,5 @@ buffer:    db      0
 
 endrom:    equ     $
 
+           end     begin
 
