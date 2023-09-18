@@ -6,8 +6,8 @@
 ; *** without express written permission from the author.         ***
 ; *******************************************************************
 
-include    ../bios.inc
-include    ../kernel.inc
+#include    ../bios.inc
+#include    ../kernel.inc
 
 .op "PUSH","N","9$1 73 8$1 73"
 .op "POP","N","60 72 A$1 F0 B$1"
@@ -15,10 +15,14 @@ include    ../kernel.inc
 .op "RTN","","D5"
 .op "MOV","NR","9$2 B$1 8$2 A$1"
 .op "MOV","NW","f8 H2 B$1 f8 L2 a$1"
+           org     2000h-6
+           dw      2000h
+           dw      end-2000h
+           dw      2000h
 
            org     2000h
 begin:     br      start
-           eever
+  	   eever
            db      'Written by Michael H. Riley',0
 
 start:     lda     ra                  ; move past any spaces
@@ -29,6 +33,10 @@ start:     lda     ra                  ; move past any spaces
            lbz     disp                ; jump if no command line argument
            mov     r7,datetime         ; where to put date
            mov     rf,ra               ; point rf at date
+	   ldn     rf
+	   smi     '?'
+	   bz      prompt
+fdatego:	
            sep     scall               ; convert month
            dw      f_atoi
            glo     rd
@@ -124,6 +132,21 @@ dateerr:   sep     scall               ; display error
            ldi     0bh
            sep     sret                ; return to Elf/OS
 
+prompt:	   sep     scall
+	   dw	   o_inmsg
+	   db	   'Enter date/time (MM/DD/YY HH:MM:SS): ',0
+	   mov rf, buffer
+	   mov rc, 32
+           sep     scall
+	   dw      o_inputl
+	   sep     scall
+	   dw      o_inmsg
+	   db      10,13,0
+	   lbdf    o_wrmboot   	; quit
+	   mov rf, buffer
+	   lbr fdatego
+
+
 disp:      sep     scall               ; see if extended BIOS
            dw      hasrtc
            lbnf    disp2               ; jump if not
@@ -164,6 +187,12 @@ disp2:     mov     rf,buffer           ; point to output buffer
            inc     rf
            lda     r7                  ; get hours
            plo     rd
+	   smi     9
+	   bdf     hr2
+	   ldi    '0'
+  	   str    rf
+	   inc    rf
+hr2:	 
            ldi     0
            phi     rd
            sep     scall               ; convert number
@@ -173,6 +202,12 @@ disp2:     mov     rf,buffer           ; point to output buffer
            inc     rf
            lda     r7                  ; get minutes
            plo     rd
+	   smi      9
+	   bdf      mn2
+	   ldi     '0'
+	   str     rf
+	   inc     rf
+mn2:	
            ldi     0
            phi     rd
            sep     scall               ; convert number
@@ -182,6 +217,12 @@ disp2:     mov     rf,buffer           ; point to output buffer
            inc     rf
            lda     r7                  ; get seconds
            plo     rd
+	   smi     9
+	   bdf     sec2
+	   ldi     '0'
+	   str     rf
+	   inc     rf
+sec2:	
            ldi     0
            phi     rd
            sep     scall               ; convert number
@@ -219,6 +260,7 @@ nortc:     adi     0                   ; clear df
 datetime:  db      0,0,0,0,0,0
 buffer:    db      0
 
+end:	
 endrom:    equ     $
 
            end     begin
