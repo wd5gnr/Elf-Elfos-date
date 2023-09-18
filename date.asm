@@ -134,15 +134,15 @@ dateerr:   sep     scall               ; display error
 
 prompt:	   sep     scall
 	   dw	   o_inmsg
-	   db	   'Enter date/time (MM/DD/YY HH:MM:SS): ',0
+	   db	   'Enter date/time (MM/DD/YYYY HH:MM:SS): ',0
 	   mov rf, buffer
 	   mov rc, 32
            sep     scall
 	   dw      o_inputl
+	   lbdf    o_wrmboot   	; quit
 	   sep     scall
 	   dw      o_inmsg
 	   db      10,13,0
-	   lbdf    o_wrmboot   	; quit
 	   mov rf, buffer
 	   lbr fdatego
 
